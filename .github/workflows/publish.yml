@@ -1,0 +1,26 @@
+name: Publish Release
+
+# Dipicu saat tag versi baru (vX.Y.Z) didorong bersama file APK di folder releases/
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Terbitkan release dengan APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          APK="releases/trenches-scanner-${TAG}.apk"
+          test -f "$APK" || { echo "APK $APK tidak ditemukan"; exit 1; }
+          NOTES="notes/${TAG}.md"
+          [ -f "$NOTES" ] || echo "Pembaruan Trenches Scanner ${TAG}." > "$NOTES"
+          sha256sum "$APK" | awk '{print "\n**SHA-256 file:** `"$1"`"}' >> "$NOTES"
+          gh release create "$TAG" "$APK" --title "Trenches Scanner ${TAG}" --notes-file "$NOTES" --latest
